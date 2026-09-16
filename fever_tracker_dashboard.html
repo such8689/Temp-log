@@ -572,6 +572,51 @@
 
         // ==================== Chart Visualization ====================
         let chartInstance = null;
+        const NORMAL_BODY_TEMP = 98.6;
+
+        const normalBodyTempPlugin = {
+            id: 'normalBodyTempLine',
+        
+            afterDraw: function(chart) {
+                const yScale = chart.scales.y;
+                const chartArea = chart.chartArea;
+                const ctx = chart.ctx;
+        
+                if (!yScale || NORMAL_BODY_TEMP < yScale.min || NORMAL_BODY_TEMP > yScale.max) {
+                    return;
+                }
+        
+                const yPosition = yScale.getPixelForValue(NORMAL_BODY_TEMP);
+        
+                ctx.save();
+        
+                // Draw normal temperature line
+                ctx.beginPath();
+                ctx.moveTo(chartArea.left, yPosition);
+                ctx.lineTo(chartArea.right, yPosition);
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = 'rgba(34, 197, 94, 0.9)';
+                ctx.setLineDash([6, 6]);
+                ctx.stroke();
+        
+                // Draw label background
+                const label = 'Normal 98.6°F';
+                ctx.font = 'bold 12px sans-serif';
+                const textWidth = ctx.measureText(label).width;
+                const labelX = chartArea.right - textWidth - 12;
+                const labelY = yPosition - 8;
+        
+                ctx.setLineDash([]);
+                ctx.fillStyle = 'rgba(34, 197, 94, 0.95)';
+                ctx.fillRect(labelX - 6, labelY - 14, textWidth + 12, 20);
+        
+                // Draw label text
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText(label, labelX, labelY);
+        
+                ctx.restore();
+            }
+        };
 
         function updateChart() {
             const profileId = state.activeProfileId;
@@ -644,14 +689,21 @@
 
             const datasets = [mainDataset, ...medicationDatasets];
 
-            const minTime = Math.min(...temps.map(t => t.x));
-            const maxTime = Math.max(...temps.map(t => t.x));
+            const threeHours = 3 * 60 * 60 * 1000;
+
+            const rawMinTime = Math.min(...temps.map(t => t.x));
+            const rawMaxTime = Math.max(...temps.map(t => t.x));
+            
+            const minTime = Math.floor(rawMinTime / threeHours) * threeHours - threeHours;
+            const maxTime = Math.ceil(rawMaxTime / threeHours) * threeHours + threeHours;
+
 
             chartInstance = new Chart(ctx, {
                 type: 'scatter',
                 data: {
                     datasets: datasets
                 },
+                plugins: [normalBodyTempPlugin],
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
@@ -703,40 +755,77 @@
                     scales: {
                         x: {
                             type: 'linear',
-                            min: minTime - 3600000,
-                            max: maxTime + 3600000,
+                            min: minTime,
+                            max: maxTime,
                             title: {
                                 display: true,
-                                text: 'Timeline'
+                                text: 'Date / Time'
                             },
                             ticks: {
+                                stepSize: threeHours,
+                                maxRotation: 0,
+                                minRotation: 0,
+                                autoSkip: false,
                                 callback: function(value) {
                                     const date = new Date(value);
-
-                                    return date.toLocaleDateString([], {
+                        
+                                    const dateLabel = date.toLocaleDateString([], {
                                         month: 'short',
                                         day: 'numeric'
-                                    }) + ' ' + date.toLocaleTimeString([], {
-                                        hour: '2-digit',
+                                    });
+                        
+                                    const timeLabel = date.toLocaleTimeString([], {
+                                        hour: 'numeric',
                                         minute: '2-digit'
                                     });
+                        
+                                    return [dateLabel, timeLabel];
                                 },
-                                maxRotation: 45,
-                                minRotation: 0
+                                color: function(context) {
+                                    const date = new Date(context.tick.value);
+                        
+                                    if (date.getHours() === 0) {
+                                        return '#1D4ED8';
+                                    }
+                        
+                                    return '#374151';
+                                },
+                                font: function(context) {
+                                    const date = new Date(context.tick.value);
+                        
+                                    if (date.getHours() === 0) {
+                                        return {
+                                            size: 12,
+                                            weight: 'bold'
+                                        };
+                                    }
+                        
+                                    return {
+                                        size: 11,
+                                        weight: 'normal'
+                                    };
+                                }
                             },
                             grid: {
                                 drawBorder: true,
                                 drawOnChartArea: true,
                                 color: function(context) {
-                                    if (context.tick.value) {
-                                        const msPerInterval = 3 * 60 * 60 * 1000;
-
-                                        if (context.tick.value % msPerInterval === 0) {
-                                            return 'rgba(0, 0, 0, 0.1)';
-                                        }
+                                    const date = new Date(context.tick.value);
+                        
+                                    if (date.getHours() === 0) {
+                                        return 'rgba(37, 99, 235, 0.45)';
                                     }
-
-                                    return 'rgba(0, 0, 0, 0.02)';
+                        
+                                    return 'rgba(0, 0, 0, 0.05)';
+                                },
+                                lineWidth: function(context) {
+                                    const date = new Date(context.tick.value);
+                        
+                                    if (date.getHours() === 0) {
+                                        return 2;
+                                    }
+                        
+                                    return 1;
                                 }
                             }
                         },
