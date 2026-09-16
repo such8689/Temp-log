@@ -1280,6 +1280,68 @@
     }
 }
 
+        function importDataFromJson(event) {
+            const file = event.target.files[0];
+        
+            if (!file) {
+                alert('No file selected.');
+                return;
+            }
+        
+            const reader = new FileReader();
+        
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+        
+                    // Supports either the full export format or raw state format
+                    const importedState = imported.data ? imported.data : imported;
+        
+                    if (
+                        !importedState ||
+                        !Array.isArray(importedState.profiles) ||
+                        !Array.isArray(importedState.medications) ||
+                        !Array.isArray(importedState.logs)
+                    ) {
+                        alert('This JSON file does not look like valid fever tracker data.');
+                        return;
+                    }
+        
+                    const confirmImport = confirm(
+                        'Import this JSON file? This will replace the tracker data currently saved on this device.'
+                    );
+        
+                    if (!confirmImport) {
+                        return;
+                    }
+        
+                    state = {
+                        profiles: importedState.profiles,
+                        medications: importedState.medications,
+                        logs: importedState.logs,
+                        activeProfileId: importedState.activeProfileId || null
+                    };
+        
+                    saveState();
+                    renderAll();
+        
+                    alert('Data imported successfully.');
+                } catch (error) {
+                    console.error('Import failed:', error);
+                    alert('Could not import JSON file. Please make sure it is a valid fever tracker export file.');
+                } finally {
+                    event.target.value = '';
+                }
+            };
+        
+            reader.onerror = function() {
+                alert('Could not read the selected file.');
+                event.target.value = '';
+            };
+        
+            reader.readAsText(file);
+        }
+
         function escapeHtml(value) {
             return String(value)
                 .replace(/&/g, '&amp;')
