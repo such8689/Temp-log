@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Family Fever & Medication Tracker</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 
@@ -11,12 +12,17 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
+
+        input[type="color"] {
+            padding: 0;
+            border: none;
+            background: transparent;
+        }
     </style>
 </head>
 
 <body class="bg-gray-50">
     <div class="min-h-screen flex flex-col">
-        <!-- Header -->
         <header class="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 shadow-lg">
             <div class="max-w-7xl mx-auto">
                 <h1 class="text-3xl font-bold">🌡️ Family Fever & Medication Tracker</h1>
@@ -24,10 +30,8 @@
             </div>
         </header>
 
-        <!-- Main Content -->
         <main class="flex-1 max-w-7xl mx-auto w-full p-4 md:p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
 
-            <!-- Sidebar -->
             <aside class="lg:col-span-1 bg-white rounded-lg shadow-md p-6 h-fit">
                 <h2 class="text-xl font-bold text-gray-800 mb-4">Profiles</h2>
 
@@ -39,8 +43,8 @@
                         type="text"
                         placeholder="New profile name"
                         class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                        onkeypress="if(event.key==='Enter') addProfile()"
                     >
+
                     <button
                         onclick="addProfile()"
                         class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
@@ -52,6 +56,7 @@
                 <hr class="mb-6">
 
                 <h3 class="font-bold text-gray-800 mb-3">Medications</h3>
+
                 <div id="medicationList" class="space-y-2 mb-4 max-h-48 overflow-y-auto"></div>
 
                 <div class="flex gap-2 mb-4">
@@ -60,8 +65,8 @@
                         type="text"
                         placeholder="Medication name"
                         class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
-                        onkeypress="if(event.key==='Enter') addMedication()"
                     >
+
                     <button
                         onclick="addMedication()"
                         class="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold"
@@ -80,10 +85,8 @@
                 </button>
             </aside>
 
-            <!-- Main Panel -->
             <section class="lg:col-span-3 space-y-6">
 
-                <!-- Data Input Form -->
                 <div class="bg-white rounded-lg shadow-md p-6">
                     <h2 class="text-xl font-bold text-gray-800 mb-4">Log Temperature & Medication</h2>
 
@@ -139,18 +142,17 @@
                     </button>
                 </div>
 
-                <!-- Chart -->
                 <div class="bg-white rounded-lg shadow-md p-6">
                     <h2 class="text-xl font-bold text-gray-800 mb-2">Temperature Timeline</h2>
                     <p class="text-sm text-gray-500 mb-4">
-                        Click any point on the chart to edit that log entry. Dates are shown above time in 3-hour blocks.
+                        Click any chart point to edit that log. The x-axis shows date above time in 3-hour blocks.
                     </p>
-                    <div style="position: relative; height: 400px;">
+
+                    <div style="position: relative; height: 420px;">
                         <canvas id="feverChart"></canvas>
                     </div>
                 </div>
 
-                <!-- Log History -->
                 <div class="bg-white rounded-lg shadow-md p-6">
                     <h2 class="text-xl font-bold text-gray-800 mb-4">Recent Logs</h2>
                     <div id="logHistory" class="space-y-2 max-h-64 overflow-y-auto"></div>
@@ -228,7 +230,7 @@
     </div>
 
     <script>
-        // ==================== State Management ====================
+        // ==================== App State ====================
         let state = {
             profiles: [],
             medications: [],
@@ -236,25 +238,63 @@
             activeProfileId: null
         };
 
-        const colorPalette = [
-            '#EF4444', '#F97316', '#EAB308', '#22C55E', '#06B6D4',
-            '#3B82F6', '#8B5CF6', '#EC4899', '#D946EF', '#6366F1',
-            '#F59E0B', '#10B981', '#14B8A6', '#0891B2', '#6D28D9'
-        ];
+        let chartInstance = null;
 
         const NORMAL_BODY_TEMP = 98.6;
         const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
-        const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+        const colorPalette = [
+            '#EF4444',
+            '#F97316',
+            '#EAB308',
+            '#22C55E',
+            '#06B6D4',
+            '#3B82F6',
+            '#8B5CF6',
+            '#EC4899',
+            '#D946EF',
+            '#6366F1',
+            '#F59E0B',
+            '#10B981',
+            '#14B8A6',
+            '#0891B2',
+            '#6D28D9'
+        ];
 
         // ==================== Initialization ====================
-        function init() {
+        window.addEventListener('DOMContentLoaded', function() {
             loadState();
             setCurrentDateTime();
+            bindEnterKeys();
+            renderAll();
+
+            document.getElementById('editLogModal').addEventListener('click', function(event) {
+                if (event.target === this) {
+                    closeEditModal();
+                }
+            });
+        });
+
+        function bindEnterKeys() {
+            document.getElementById('newProfileInput').addEventListener('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    addProfile();
+                }
+            });
+
+            document.getElementById('newMedicationInput').addEventListener('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    addMedication();
+                }
+            });
+        }
+
+        function renderAll() {
             renderProfiles();
             renderMedications();
             updateMedicationSelect();
-            updateChart();
             renderLogs();
+            updateChart();
         }
 
         function setCurrentDateTime() {
@@ -274,16 +314,18 @@
                 `${String(hours).padStart(2, '0')}:${String(roundedMinutes).padStart(2, '0')}`;
         }
 
-        // ==================== Profile Management ====================
+        // ==================== Profiles ====================
         function addProfile() {
             const input = document.getElementById('newProfileInput');
             const name = input.value.trim();
 
-            if (!name) return;
+            if (!name) {
+                return;
+            }
 
             const profile = {
                 id: Date.now(),
-                name
+                name: name
             };
 
             state.profiles.push(profile);
@@ -295,50 +337,63 @@
             input.value = '';
 
             saveState();
-            renderProfiles();
-            updateChart();
-            renderLogs();
+            renderAll();
         }
 
         function deleteProfile(id) {
-            const profile = state.profiles.find(p => p.id === id);
-            if (!profile) return;
+            const profile = state.profiles.find(function(p) {
+                return p.id === id;
+            });
 
-            if (!confirm(`Delete profile "${profile.name}"?`)) return;
+            if (!profile) {
+                return;
+            }
 
-            state.profiles = state.profiles.filter(p => p.id !== id);
-            state.logs = state.logs.filter(log => log.profileId !== id);
+            if (!confirm(`Delete profile "${profile.name}" and all logs for this profile?`)) {
+                return;
+            }
+
+            state.profiles = state.profiles.filter(function(p) {
+                return p.id !== id;
+            });
+
+            state.logs = state.logs.filter(function(log) {
+                return log.profileId !== id;
+            });
 
             if (state.activeProfileId === id) {
                 state.activeProfileId = state.profiles.length > 0 ? state.profiles[0].id : null;
             }
 
             saveState();
-            renderProfiles();
-            updateChart();
-            renderLogs();
+            renderAll();
         }
 
         function selectProfile(id) {
             state.activeProfileId = id;
-
             saveState();
-            renderProfiles();
-            updateChart();
-            renderLogs();
+            renderAll();
         }
 
         function renameProfile(id) {
-            const profile = state.profiles.find(p => p.id === id);
-            if (!profile) return;
+            const profile = state.profiles.find(function(p) {
+                return p.id === id;
+            });
+
+            if (!profile) {
+                return;
+            }
 
             const newName = prompt(`Rename "${profile.name}" to:`, profile.name);
 
-            if (newName && newName.trim()) {
-                profile.name = newName.trim();
-                saveState();
-                renderProfiles();
+            if (!newName || !newName.trim()) {
+                return;
             }
+
+            profile.name = newName.trim();
+
+            saveState();
+            renderProfiles();
         }
 
         function renderProfiles() {
@@ -349,50 +404,54 @@
                 return;
             }
 
-            container.innerHTML = state.profiles.map(profile => `
-                <div class="p-3 rounded-lg transition-colors ${
-                    profile.id === state.activeProfileId
-                        ? 'bg-blue-100 border-2 border-blue-600'
-                        : 'bg-gray-100 border-2 border-gray-200'
-                }">
-                    <div class="flex items-center justify-between mb-2">
-                        <button
-                            onclick="selectProfile(${profile.id})"
-                            class="flex-1 text-left font-semibold text-gray-800 hover:text-blue-600 transition-colors"
-                        >
-                            👤 ${escapeHtml(profile.name)}
-                        </button>
-                    </div>
+            container.innerHTML = state.profiles.map(function(profile) {
+                const activeClass = profile.id === state.activeProfileId
+                    ? 'bg-blue-100 border-2 border-blue-600'
+                    : 'bg-gray-100 border-2 border-gray-200';
 
-                    <div class="flex gap-1 text-xs">
-                        <button
-                            onclick="renameProfile(${profile.id})"
-                            class="flex-1 px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                        >
-                            ✎
-                        </button>
+                return `
+                    <div class="p-3 rounded-lg transition-colors ${activeClass}">
+                        <div class="flex items-center justify-between mb-2">
+                            <button
+                                onclick="selectProfile(${profile.id})"
+                                class="flex-1 text-left font-semibold text-gray-800 hover:text-blue-600 transition-colors"
+                            >
+                                👤 ${escapeHtml(profile.name)}
+                            </button>
+                        </div>
 
-                        <button
-                            onclick="deleteProfile(${profile.id})"
-                            class="flex-1 px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                        >
-                            ✕
-                        </button>
+                        <div class="flex gap-1 text-xs">
+                            <button
+                                onclick="renameProfile(${profile.id})"
+                                class="flex-1 px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                            >
+                                ✎
+                            </button>
+
+                            <button
+                                onclick="deleteProfile(${profile.id})"
+                                class="flex-1 px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                            >
+                                ✕
+                            </button>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
-        // ==================== Medication Management ====================
+        // ==================== Medications ====================
         function addMedication() {
             const input = document.getElementById('newMedicationInput');
             const name = input.value.trim();
 
-            if (!name) return;
+            if (!name) {
+                return;
+            }
 
             const medication = {
                 id: Date.now(),
-                name,
+                name: name,
                 color: colorPalette[state.medications.length % colorPalette.length]
             };
 
@@ -403,32 +462,44 @@
             renderMedications();
             updateMedicationSelect();
             updateChart();
+            renderLogs();
         }
 
         function deleteMedication(id) {
-            const medication = state.medications.find(m => m.id === id);
-            if (!medication) return;
+            const medication = state.medications.find(function(med) {
+                return med.id === id;
+            });
 
-            if (!confirm(`Delete medication "${medication.name}"? Logs using this medication will be changed to no medication.`)) return;
+            if (!medication) {
+                return;
+            }
 
-            state.medications = state.medications.filter(m => m.id !== id);
+            if (!confirm(`Delete medication "${medication.name}"? Existing logs will keep the temperature but remove this medication.`)) {
+                return;
+            }
 
-            state.logs.forEach(log => {
+            state.medications = state.medications.filter(function(med) {
+                return med.id !== id;
+            });
+
+            state.logs.forEach(function(log) {
                 if (log.medicationId === id) {
                     log.medicationId = null;
                 }
             });
 
             saveState();
-            renderMedications();
-            updateMedicationSelect();
-            updateChart();
-            renderLogs();
+            renderAll();
         }
 
         function changeMedicationColor(id, color) {
-            const medication = state.medications.find(m => m.id === id);
-            if (!medication) return;
+            const medication = state.medications.find(function(med) {
+                return med.id === id;
+            });
+
+            if (!medication) {
+                return;
+            }
 
             medication.color = color;
 
@@ -446,53 +517,57 @@
                 return;
             }
 
-            container.innerHTML = state.medications.map(med => `
-                <div class="p-2 bg-gray-50 rounded-lg">
-                    <div class="flex items-center justify-between gap-2">
-                        <div class="flex items-center gap-2 flex-1">
-                            <input
-                                type="color"
-                                value="${med.color}"
-                                onchange="changeMedicationColor(${med.id}, this.value)"
-                                class="w-8 h-8 border border-gray-300 rounded cursor-pointer"
-                                title="Change medication color"
+            container.innerHTML = state.medications.map(function(med) {
+                return `
+                    <div class="p-2 bg-gray-50 rounded-lg">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2 flex-1">
+                                <input
+                                    type="color"
+                                    value="${med.color}"
+                                    onchange="changeMedicationColor(${med.id}, this.value)"
+                                    class="w-8 h-8 cursor-pointer"
+                                    title="Change medication color"
+                                >
+
+                                <span class="text-sm text-gray-700">${escapeHtml(med.name)}</span>
+                            </div>
+
+                            <button
+                                onclick="deleteMedication(${med.id})"
+                                class="text-xs px-2 py-1 text-red-600 hover:bg-red-100 rounded transition-colors"
                             >
-
-                            <span class="text-sm text-gray-700">${escapeHtml(med.name)}</span>
+                                ✕
+                            </button>
                         </div>
-
-                        <button
-                            onclick="deleteMedication(${med.id})"
-                            class="text-xs px-2 py-1 text-red-600 hover:bg-red-100 rounded transition-colors"
-                        >
-                            ✕
-                        </button>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function updateMedicationSelect() {
             const select = document.getElementById('medicationSelect');
 
-            select.innerHTML = '<option value="">— None —</option>' + state.medications.map(med => `
-                <option value="${med.id}">${escapeHtml(med.name)}</option>
-            `).join('');
+            select.innerHTML = '<option value="">— None —</option>' + state.medications.map(function(med) {
+                return `<option value="${med.id}">${escapeHtml(med.name)}</option>`;
+            }).join('');
         }
 
-        // ==================== Data Logging ====================
+        // ==================== Logs ====================
         function logEntry() {
             if (!state.activeProfileId) {
                 alert('Please create a profile first.');
                 return;
             }
 
-            const temp = parseFloat(document.getElementById('tempInput').value);
+            const tempValue = document.getElementById('tempInput').value;
             const date = document.getElementById('dateInput').value;
             const time = document.getElementById('timeInput').value;
             const medicationId = document.getElementById('medicationSelect').value;
 
-            if (!temp || !date || !time) {
+            const temp = parseFloat(tempValue);
+
+            if (Number.isNaN(temp) || !date || !time) {
                 alert('Please fill in temperature, date, and time.');
                 return;
             }
@@ -503,47 +578,220 @@
                 }
             }
 
+            const timestamp = new Date(`${date}T${time}`).getTime();
+
+            if (Number.isNaN(timestamp)) {
+                alert('Invalid date or time.');
+                return;
+            }
+
             const entry = {
                 id: Date.now(),
                 profileId: state.activeProfileId,
                 temperature: temp,
-                timestamp: new Date(`${date}T${time}`).getTime(),
-                medicationId: medicationId ? parseInt(medicationId) : null
+                timestamp: timestamp,
+                medicationId: medicationId ? parseInt(medicationId, 10) : null
             };
 
             state.logs.push(entry);
-            state.logs.sort((a, b) => a.timestamp - b.timestamp);
+
+            state.logs.sort(function(a, b) {
+                return a.timestamp - b.timestamp;
+            });
 
             saveState();
 
             document.getElementById('tempInput').value = '';
 
-            updateChart();
             renderLogs();
+            updateChart();
             setCurrentDateTime();
         }
 
         function deleteLog(id) {
-            if (!confirm('Delete this log entry?')) return;
+            if (!confirm('Delete this log entry?')) {
+                return;
+            }
 
-            state.logs = state.logs.filter(log => log.id !== id);
+            state.logs = state.logs.filter(function(log) {
+                return log.id !== id;
+            });
 
             saveState();
-            updateChart();
             renderLogs();
+            updateChart();
+        }
+
+        function renderLogs() {
+            const container = document.getElementById('logHistory');
+
+            if (!state.activeProfileId) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">Create or select a profile to begin.</p>';
+                return;
+            }
+
+            const profileLogs = state.logs.filter(function(log) {
+                return log.profileId === state.activeProfileId;
+            });
+
+            if (profileLogs.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">No logs yet. Add one above.</p>';
+                return;
+            }
+
+            container.innerHTML = profileLogs.slice().reverse().map(function(log) {
+                const date = new Date(log.timestamp);
+                const medication = state.medications.find(function(med) {
+                    return med.id === log.medicationId;
+                });
+
+                const dateStr = date.toLocaleDateString([], {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                });
+
+                const timeStr = date.toLocaleTimeString([], {
+                    hour: 'numeric',
+                    minute: '2-digit'
+                });
+
+                const medicationHtml = medication
+                    ? `
+                        <div class="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                            <span style="background-color: ${medication.color}; width: 10px; height: 10px; border-radius: 2px; display: inline-block;"></span>
+                            💊 ${escapeHtml(medication.name)}
+                        </div>
+                    `
+                    : '';
+
+                return `
+                    <div class="p-3 bg-gray-50 rounded-lg flex justify-between items-center gap-3">
+                        <div class="flex-1">
+                            <div class="font-semibold text-gray-800">${log.temperature}°F</div>
+                            <div class="text-sm text-gray-600">${dateStr} @ ${timeStr}</div>
+                            ${medicationHtml}
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button
+                                onclick="openEditLog(${log.id})"
+                                class="px-3 py-1 text-blue-600 hover:bg-blue-100 rounded transition-colors text-sm"
+                            >
+                                Edit
+                            </button>
+
+                            <button
+                                onclick="deleteLog(${log.id})"
+                                class="px-3 py-1 text-red-600 hover:bg-red-100 rounded transition-colors text-sm"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ==================== Edit Log Modal ====================
+        function openEditLog(logId) {
+            const log = state.logs.find(function(item) {
+                return item.id === logId;
+            });
+
+            if (!log) {
+                return;
+            }
+
+            const date = new Date(log.timestamp);
+
+            document.getElementById('editLogId').value = log.id;
+            document.getElementById('editTempInput').value = log.temperature;
+
+            document.getElementById('editDateInput').value =
+                `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+            document.getElementById('editTimeInput').value =
+                `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+
+            const select = document.getElementById('editMedicationSelect');
+
+            select.innerHTML = '<option value="">— None —</option>' + state.medications.map(function(med) {
+                const selected = log.medicationId === med.id ? 'selected' : '';
+                return `<option value="${med.id}" ${selected}>${escapeHtml(med.name)}</option>`;
+            }).join('');
+
+            document.getElementById('editLogModal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editLogModal').classList.add('hidden');
+        }
+
+        function saveEditedLog() {
+            const logId = parseInt(document.getElementById('editLogId').value, 10);
+
+            const log = state.logs.find(function(item) {
+                return item.id === logId;
+            });
+
+            if (!log) {
+                return;
+            }
+
+            const temp = parseFloat(document.getElementById('editTempInput').value);
+            const date = document.getElementById('editDateInput').value;
+            const time = document.getElementById('editTimeInput').value;
+            const medicationId = document.getElementById('editMedicationSelect').value;
+
+            if (Number.isNaN(temp) || !date || !time) {
+                alert('Please fill in temperature, date, and time.');
+                return;
+            }
+
+            if (temp < 95 || temp > 106) {
+                if (!confirm('This temperature is outside the usual range. Save it anyway?')) {
+                    return;
+                }
+            }
+
+            const timestamp = new Date(`${date}T${time}`).getTime();
+
+            if (Number.isNaN(timestamp)) {
+                alert('Invalid date or time.');
+                return;
+            }
+
+            log.temperature = temp;
+            log.timestamp = timestamp;
+            log.medicationId = medicationId ? parseInt(medicationId, 10) : null;
+
+            state.logs.sort(function(a, b) {
+                return a.timestamp - b.timestamp;
+            });
+
+            saveState();
+            closeEditModal();
+            renderLogs();
+            updateChart();
         }
 
         // ==================== Chart Helpers ====================
-        function floorToLocalThreeHour(timestamp) {
+        function floorToThreeHourBlock(timestamp) {
             const date = new Date(timestamp);
             date.setMinutes(0, 0, 0);
             date.setHours(Math.floor(date.getHours() / 3) * 3);
             return date.getTime();
         }
 
-        function ceilToLocalThreeHour(timestamp) {
-            const floored = floorToLocalThreeHour(timestamp);
-            return floored === timestamp ? floored : floored + THREE_HOURS_MS;
+        function ceilToThreeHourBlock(timestamp) {
+            const floored = floorToThreeHourBlock(timestamp);
+
+            if (floored === timestamp) {
+                return floored;
+            }
+
+            return floored + THREE_HOURS_MS;
         }
 
         function startOfLocalDay(timestamp) {
@@ -552,14 +800,24 @@
             return date.getTime();
         }
 
-        function isLocalMidnight(timestamp) {
+        function addOneLocalDay(timestamp) {
             const date = new Date(timestamp);
+            date.setDate(date.getDate() + 1);
+            date.setHours(0, 0, 0, 0);
+            return date.getTime();
+        }
+
+        function isLocalMidnight(timestamp) {
+            if (timestamp === null || timestamp === undefined || Number.isNaN(Number(timestamp))) {
+                return false;
+            }
+
+            const date = new Date(Number(timestamp));
+
             return date.getHours() === 0 && date.getMinutes() === 0;
         }
 
         // ==================== Chart Plugins ====================
-        let chartInstance = null;
-
         const dayBackgroundPlugin = {
             id: 'dayBackgroundPlugin',
 
@@ -568,29 +826,30 @@
                 const chartArea = chart.chartArea;
                 const ctx = chart.ctx;
 
-                if (!xScale || !chartArea) return;
+                if (!xScale || !chartArea) {
+                    return;
+                }
 
-                const min = xScale.min;
-                const max = xScale.max;
+                let dayStart = startOfLocalDay(xScale.min);
 
-                let dayStart = startOfLocalDay(min);
-
-                if (dayStart > min) {
-                    dayStart -= ONE_DAY_MS;
+                if (dayStart > xScale.min) {
+                    const tempDate = new Date(dayStart);
+                    tempDate.setDate(tempDate.getDate() - 1);
+                    dayStart = tempDate.getTime();
                 }
 
                 let dayIndex = 0;
 
                 ctx.save();
 
-                while (dayStart < max) {
-                    const nextDayStart = dayStart + ONE_DAY_MS;
+                while (dayStart < xScale.max) {
+                    const nextDayStart = addOneLocalDay(dayStart);
 
                     const left = Math.max(chartArea.left, xScale.getPixelForValue(dayStart));
                     const right = Math.min(chartArea.right, xScale.getPixelForValue(nextDayStart));
 
-                    if (dayIndex % 2 === 0) {
-                        ctx.fillStyle = 'rgba(59, 130, 246, 0.035)';
+                    if (right > chartArea.left && left < chartArea.right && dayIndex % 2 === 0) {
+                        ctx.fillStyle = 'rgba(59, 130, 246, 0.04)';
                         ctx.fillRect(left, chartArea.top, right - left, chartArea.bottom - chartArea.top);
                     }
 
@@ -610,7 +869,9 @@
                 const chartArea = chart.chartArea;
                 const ctx = chart.ctx;
 
-                if (!yScale || !chartArea) return;
+                if (!yScale || !chartArea) {
+                    return;
+                }
 
                 if (NORMAL_BODY_TEMP < yScale.min || NORMAL_BODY_TEMP > yScale.max) {
                     return;
@@ -630,8 +891,8 @@
 
                 const label = 'Normal 98.6°F';
                 ctx.font = 'bold 12px sans-serif';
-                const textWidth = ctx.measureText(label).width;
 
+                const textWidth = ctx.measureText(label).width;
                 const labelX = chartArea.right - textWidth - 12;
                 const labelY = yPosition - 8;
 
@@ -646,11 +907,8 @@
             }
         };
 
-        // ==================== Chart Visualization ====================
+        // ==================== Chart ====================
         function updateChart() {
-            const profileId = state.activeProfileId;
-            const profileLogs = state.logs.filter(log => log.profileId === profileId);
-
             const canvas = document.getElementById('feverChart');
             const ctx = canvas.getContext('2d');
 
@@ -659,56 +917,36 @@
                 chartInstance = null;
             }
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const profileLogs = state.logs.filter(function(log) {
+                return log.profileId === state.activeProfileId;
+            });
 
-            if (!profileId || profileLogs.length === 0) {
-                ctx.fillStyle = '#9CA3AF';
-                ctx.font = '14px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText(
-                    profileId ? 'No temperature logs yet' : 'Create or select a profile to begin',
-                    canvas.width / 2,
-                    canvas.height / 2
+            if (!state.activeProfileId || profileLogs.length === 0) {
+                drawEmptyChartMessage(
+                    ctx,
+                    canvas,
+                    state.activeProfileId ? 'No temperature logs yet' : 'Create or select a profile to begin'
                 );
                 return;
             }
 
-            const temps = profileLogs.map(log => ({
-                x: log.timestamp,
-                y: log.temperature,
-                logId: log.id
-            }));
-
-            const medicationDatasets = state.medications.map(med => {
-                const medLogs = profileLogs.filter(log => log.medicationId === med.id);
-
+            const tempPoints = profileLogs.map(function(log) {
                 return {
-                    label: med.name,
-                    data: medLogs.map(log => ({
-                        x: log.timestamp,
-                        y: log.temperature,
-                        logId: log.id
-                    })),
-                    type: 'scatter',
-                    backgroundColor: med.color,
-                    borderColor: med.color,
-                    borderWidth: 2,
-                    radius: 7,
-                    hoverRadius: 10,
-                    pointStyle: 'rectRounded',
-                    tension: 0
+                    x: log.timestamp,
+                    y: log.temperature,
+                    logId: log.id
                 };
             });
 
             const mainDataset = {
                 label: 'Temperature (°F)',
-                data: temps,
+                data: tempPoints,
                 type: 'line',
                 borderColor: '#3B82F6',
                 borderWidth: 3,
                 backgroundColor: 'rgba(59, 130, 246, 0.05)',
                 fill: false,
-                tension: 0.3,
+                tension: 0.25,
                 pointRadius: 5,
                 pointBackgroundColor: '#3B82F6',
                 pointBorderColor: '#ffffff',
@@ -716,23 +954,54 @@
                 hoverRadius: 8
             };
 
-            const datasets = [mainDataset, ...medicationDatasets];
+            const medicationDatasets = state.medications.map(function(med) {
+                const medLogs = profileLogs.filter(function(log) {
+                    return log.medicationId === med.id;
+                });
 
-            const rawMinTime = Math.min(...temps.map(t => t.x));
-            const rawMaxTime = Math.max(...temps.map(t => t.x));
+                return {
+                    label: med.name,
+                    data: medLogs.map(function(log) {
+                        return {
+                            x: log.timestamp,
+                            y: log.temperature,
+                            logId: log.id
+                        };
+                    }),
+                    type: 'scatter',
+                    backgroundColor: med.color,
+                    borderColor: med.color,
+                    borderWidth: 2,
+                    radius: 7,
+                    hoverRadius: 10,
+                    pointStyle: 'rectRounded'
+                };
+            });
 
-            const minTime = floorToLocalThreeHour(rawMinTime) - THREE_HOURS_MS;
-            const maxTime = ceilToLocalThreeHour(rawMaxTime) + THREE_HOURS_MS;
+            const datasets = [mainDataset].concat(medicationDatasets);
+
+            const rawMinTime = Math.min.apply(null, tempPoints.map(function(point) {
+                return point.x;
+            }));
+
+            const rawMaxTime = Math.max.apply(null, tempPoints.map(function(point) {
+                return point.x;
+            }));
+
+            const minTime = floorToThreeHourBlock(rawMinTime) - THREE_HOURS_MS;
+            const maxTime = ceilToThreeHourBlock(rawMaxTime) + THREE_HOURS_MS;
 
             chartInstance = new Chart(ctx, {
                 type: 'scatter',
                 data: {
-                    datasets
+                    datasets: datasets
                 },
                 plugins: [dayBackgroundPlugin, normalBodyTempPlugin],
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+
+                    parsing: false,
 
                     interaction: {
                         mode: 'nearest',
@@ -740,7 +1009,9 @@
                     },
 
                     onClick: function(event, elements) {
-                        if (!elements.length) return;
+                        if (!elements || elements.length === 0) {
+                            return;
+                        }
 
                         const clickedElement = elements[0];
                         const dataset = this.data.datasets[clickedElement.datasetIndex];
@@ -771,13 +1042,17 @@
                                     const date = new Date(context.parsed.x);
                                     const temp = context.parsed.y;
 
-                                    return `${context.dataset.label}: ${temp}°F @ ${date.toLocaleDateString([], {
+                                    const dateLabel = date.toLocaleDateString([], {
                                         month: 'short',
                                         day: 'numeric'
-                                    })} ${date.toLocaleTimeString([], {
+                                    });
+
+                                    const timeLabel = date.toLocaleTimeString([], {
                                         hour: 'numeric',
                                         minute: '2-digit'
-                                    })}`;
+                                    });
+
+                                    return `${context.dataset.label}: ${temp}°F @ ${dateLabel} ${timeLabel}`;
                                 }
                             }
                         }
@@ -788,24 +1063,18 @@
                             type: 'linear',
                             min: minTime,
                             max: maxTime,
+
                             title: {
                                 display: true,
                                 text: 'Date / Time'
                             },
+
                             ticks: {
                                 stepSize: THREE_HOURS_MS,
                                 autoSkip: false,
                                 maxRotation: 0,
                                 minRotation: 0,
-                                color: function(context) {
-                                    return isLocalMidnight(context.tick.value) ? '#1D4ED8' : '#374151';
-                                },
-                                font: function(context) {
-                                    return {
-                                        size: isLocalMidnight(context.tick.value) ? 12 : 11,
-                                        weight: isLocalMidnight(context.tick.value) ? 'bold' : 'normal'
-                                    };
-                                },
+
                                 callback: function(value) {
                                     const date = new Date(value);
 
@@ -820,18 +1089,39 @@
                                     });
 
                                     return [dateLabel, timeLabel];
+                                },
+
+                                color: function(context) {
+                                    const value = context && context.tick ? context.tick.value : null;
+                                    return isLocalMidnight(value) ? '#1D4ED8' : '#374151';
+                                },
+
+                                font: function(context) {
+                                    const value = context && context.tick ? context.tick.value : null;
+                                    const midnight = isLocalMidnight(value);
+
+                                    return {
+                                        size: midnight ? 12 : 11,
+                                        weight: midnight ? 'bold' : 'normal'
+                                    };
                                 }
                             },
+
                             grid: {
                                 drawBorder: true,
                                 drawOnChartArea: true,
+
                                 color: function(context) {
-                                    return isLocalMidnight(context.tick.value)
+                                    const value = context && context.tick ? context.tick.value : null;
+
+                                    return isLocalMidnight(value)
                                         ? 'rgba(37, 99, 235, 0.55)'
                                         : 'rgba(0, 0, 0, 0.06)';
                                 },
+
                                 lineWidth: function(context) {
-                                    return isLocalMidnight(context.tick.value) ? 2 : 1;
+                                    const value = context && context.tick ? context.tick.value : null;
+                                    return isLocalMidnight(value) ? 2 : 1;
                                 }
                             }
                         },
@@ -840,24 +1130,21 @@
                             beginAtZero: false,
                             min: 95,
                             max: 106,
+
                             title: {
                                 display: true,
                                 text: 'Temperature (°F)'
                             },
+
                             ticks: {
                                 callback: function(value) {
                                     return Number(value).toFixed(1);
                                 }
                             },
+
                             grid: {
                                 drawBorder: true,
-                                color: function(context) {
-                                    if (Number(context.tick.value).toFixed(1) === NORMAL_BODY_TEMP.toFixed(1)) {
-                                        return 'rgba(34, 197, 94, 0.25)';
-                                    }
-
-                                    return 'rgba(0, 0, 0, 0.05)';
-                                }
+                                color: 'rgba(0, 0, 0, 0.05)'
                             }
                         }
                     }
@@ -865,139 +1152,42 @@
             });
         }
 
-        // ==================== Edit Log Entry ====================
-        function openEditLog(logId) {
-            const log = state.logs.find(l => l.id === logId);
-            if (!log) return;
-
-            const date = new Date(log.timestamp);
-
-            document.getElementById('editLogId').value = log.id;
-            document.getElementById('editTempInput').value = log.temperature;
-
-            document.getElementById('editDateInput').value =
-                `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-
-            document.getElementById('editTimeInput').value =
-                `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-
-            const select = document.getElementById('editMedicationSelect');
-
-            select.innerHTML = '<option value="">— None —</option>' + state.medications.map(med => `
-                <option value="${med.id}" ${log.medicationId === med.id ? 'selected' : ''}>
-                    ${escapeHtml(med.name)}
-                </option>
-            `).join('');
-
-            document.getElementById('editLogModal').classList.remove('hidden');
+        function drawEmptyChartMessage(ctx, canvas, message) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.fillStyle = '#9CA3AF';
+            ctx.font = '14px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(message, canvas.width / 2, canvas.height / 2);
+            ctx.restore();
         }
 
-        function closeEditModal() {
-            document.getElementById('editLogModal').classList.add('hidden');
+        // ==================== Storage / Utilities ====================
+        function saveState() {
+            localStorage.setItem('feverTrackerState', JSON.stringify(state));
         }
 
-        function saveEditedLog() {
-            const logId = parseInt(document.getElementById('editLogId').value);
-            const log = state.logs.find(l => l.id === logId);
+        function loadState() {
+            const saved = localStorage.getItem('feverTrackerState');
 
-            if (!log) return;
-
-            const temp = parseFloat(document.getElementById('editTempInput').value);
-            const date = document.getElementById('editDateInput').value;
-            const time = document.getElementById('editTimeInput').value;
-            const medicationId = document.getElementById('editMedicationSelect').value;
-
-            if (!temp || !date || !time) {
-                alert('Please fill in temperature, date, and time.');
+            if (!saved) {
                 return;
             }
 
-            if (temp < 95 || temp > 106) {
-                if (!confirm('This temperature is outside the usual range. Save it anyway?')) {
-                    return;
-                }
+            try {
+                const parsed = JSON.parse(saved);
+
+                state = {
+                    profiles: Array.isArray(parsed.profiles) ? parsed.profiles : [],
+                    medications: Array.isArray(parsed.medications) ? parsed.medications : [],
+                    logs: Array.isArray(parsed.logs) ? parsed.logs : [],
+                    activeProfileId: parsed.activeProfileId || null
+                };
+            } catch (error) {
+                console.error('Could not load saved tracker data:', error);
             }
-
-            log.temperature = temp;
-            log.timestamp = new Date(`${date}T${time}`).getTime();
-            log.medicationId = medicationId ? parseInt(medicationId) : null;
-
-            state.logs.sort((a, b) => a.timestamp - b.timestamp);
-
-            saveState();
-            updateChart();
-            renderLogs();
-            closeEditModal();
         }
 
-        // ==================== Log History ====================
-        function renderLogs() {
-            const profileId = state.activeProfileId;
-            const profileLogs = state.logs.filter(log => log.profileId === profileId);
-            const container = document.getElementById('logHistory');
-
-            if (!profileId) {
-                container.innerHTML = '<p class="text-gray-500 text-sm">Create or select a profile to begin.</p>';
-                return;
-            }
-
-            if (profileLogs.length === 0) {
-                container.innerHTML = '<p class="text-gray-500 text-sm">No logs yet. Add one above.</p>';
-                return;
-            }
-
-            container.innerHTML = [...profileLogs].reverse().map(log => {
-                const date = new Date(log.timestamp);
-                const med = state.medications.find(m => m.id === log.medicationId);
-
-                const dateStr = date.toLocaleDateString([], {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric'
-                });
-
-                const timeStr = date.toLocaleTimeString([], {
-                    hour: 'numeric',
-                    minute: '2-digit'
-                });
-
-                return `
-                    <div class="p-3 bg-gray-50 rounded-lg flex justify-between items-center gap-3">
-                        <div class="flex-1">
-                            <div class="font-semibold text-gray-800">${log.temperature}°F</div>
-                            <div class="text-sm text-gray-600">${dateStr} @ ${timeStr}</div>
-
-                            ${
-                                med
-                                    ? `<div class="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                                            <span style="background-color: ${med.color}; width: 10px; height: 10px; border-radius: 2px; display: inline-block;"></span>
-                                            💊 ${escapeHtml(med.name)}
-                                       </div>`
-                                    : ''
-                            }
-                        </div>
-
-                        <div class="flex gap-2">
-                            <button
-                                onclick="openEditLog(${log.id})"
-                                class="px-3 py-1 text-blue-600 hover:bg-blue-100 rounded transition-colors text-sm"
-                            >
-                                Edit
-                            </button>
-
-                            <button
-                                onclick="deleteLog(${log.id})"
-                                class="px-3 py-1 text-red-600 hover:bg-red-100 rounded transition-colors text-sm"
-                            >
-                                ✕
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        // ==================== Utilities ====================
         function clearAllData() {
             if (!confirm('Are you sure you want to delete ALL profiles, medications, and logs? This cannot be undone.')) {
                 return;
@@ -1011,11 +1201,7 @@
             };
 
             saveState();
-            renderProfiles();
-            renderMedications();
-            updateMedicationSelect();
-            updateChart();
-            renderLogs();
+            renderAll();
 
             alert('All data cleared.');
         }
@@ -1028,38 +1214,6 @@
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#039;');
         }
-
-        // ==================== LocalStorage ====================
-        function saveState() {
-            localStorage.setItem('feverTrackerState', JSON.stringify(state));
-        }
-
-        function loadState() {
-            const saved = localStorage.getItem('feverTrackerState');
-
-            if (saved) {
-                try {
-                    const parsedState = JSON.parse(saved);
-
-                    state = {
-                        profiles: parsedState.profiles || [],
-                        medications: parsedState.medications || [],
-                        logs: parsedState.logs || [],
-                        activeProfileId: parsedState.activeProfileId || null
-                    };
-                } catch (e) {
-                    console.error('Failed to load state:', e);
-                }
-            }
-        }
-
-        document.getElementById('editLogModal').addEventListener('click', function(event) {
-            if (event.target === this) {
-                closeEditModal();
-            }
-        });
-
-        window.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
