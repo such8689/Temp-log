@@ -79,7 +79,7 @@
                 <div class="space-y-2 mb-4">
                     <button
                         onclick="exportDataAsJson()"
-                        class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-sm"
+                        class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-smw-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-sm"
                     >
                         ⬇️ Export JSON
                     </button>
@@ -1239,6 +1239,46 @@
 
             alert('Tracker cleared. You can start a new illness now.');
         }
+
+        function exportDataAsJson() {
+            try {
+            const exportObject = {
+                app: 'Family Fever & Medication Tracker',
+                version: 1,
+                exportedAt: new Date().toISOString(),
+                data: state
+            };
+    
+            const json = JSON.stringify(exportObject, null, 2);
+    
+            const blob = new Blob([json], {
+                type: 'application/json'
+            });
+
+        const url = URL.createObjectURL(blob);
+
+        const now = new Date();
+        const fileDate =
+            `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `fever-tracker-${fileDate}.json`;
+        link.style.display = 'none';
+
+        document.body.appendChild(link);
+        link.click();
+
+        setTimeout(function() {
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }, 100);
+
+    } catch (error) {
+        console.error('Export failed:', error);
+        alert('Export failed. Please check the browser console for details.');
+    }
+}
 
         function escapeHtml(value) {
             return String(value)
