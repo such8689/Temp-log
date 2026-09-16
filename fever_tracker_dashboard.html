@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Fever & Medication Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .tab-button.active {
+            @apply bg-blue-600 text-white;
+        }
+        .tab-button {
+            @apply px-4 py-2 rounded-lg transition-colors bg-gray-200 text-gray-700;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 shadow-lg">
+            <div class="max-w-7xl mx-auto">
+                <h1 class="text-3xl font-bold">🌡️ Family Fever & Medication Tracker</h1>
+                <p class="text-blue-100 mt-1">Track temperatures and medications across multiple profiles</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 max-w-7xl mx-auto w-full p-4 md:p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+            
+            <!-- Sidebar -->
+            <aside class="lg:col-span-1 bg-white rounded-lg shadow-md p-6 h-fit">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Profiles</h2>
+                
+                <!-- Profile List -->
+                <div id="profileList" class="space-y-2 mb-4">
+                    <!-- Profiles rendered here -->
+                </div>
+
+                <!-- Add Profile -->
+                <div class="flex gap-2 mb-6">
+                    <input 
+                        id="newProfileInput" 
+                        type="text" 
+                        placeholder="New profile name" 
+                        class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        onkeypress="if(event.key==='Enter') addProfile()"
+                    >
+                    <button 
+                        onclick="addProfile()" 
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                    >
+                        +
+                    </button>
+                </div>
+
+                <hr class="mb-6">
+
+                <!-- Medication Manager -->
+                <h3 class="font-bold text-gray-800 mb-3">Medications</h3>
+                <div id="medicationList" class="space-y-2 mb-4 max-h-48 overflow-y-auto">
+                    <!-- Medications rendered here -->
+                </div>
+
+                <!-- Add Medication -->
+                <div class="flex gap-2 mb-4">
+                    <input 
+                        id="newMedicationInput" 
+                        type="text" 
+                        placeholder="Medication name" 
+                        class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                        onkeypress="if(event.key==='Enter') addMedication()"
+                    >
+                    <button 
+                        onclick="addMedication()" 
+                        class="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold"
+                    >
+                        +
+                    </button>
+                </div>
+
+                <hr class="mb-6">
+
+                <!-- Clear Data -->
+                <button 
+                    onclick="clearAllData()" 
+                    class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm"
+                >
+                    🗑️ Clear All Data
+                </button>
+            </aside>
+
+            <!-- Main Panel -->
+            <section class="lg:col-span-3 space-y-6">
+                
+                <!-- Data Input Form -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Log Temperature & Medication</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                        <!-- Temperature Input -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Temperature (°F)</label>
+                            <input 
+                                id="tempInput" 
+                                type="number" 
+                                placeholder="98.6" 
+                                min="95" 
+                                max="106" 
+                                step="0.1"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                            >
+                        </div>
+
+                        <!-- Date Input -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Date</label>
+                            <input 
+                                id="dateInput" 
+                                type="date"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                            >
+                        </div>
+
+                        <!-- Time Input (15-minute increments) -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Time</label>
+                            <input 
+                                id="timeInput" 
+                                type="time" 
+                                step="900"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                            >
+                        </div>
+
+                        <!-- Medication Select -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Medication</label>
+                            <select 
+                                id="medicationSelect"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                            >
+                                <option value="">— None —</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button 
+                        onclick="logEntry()" 
+                        class="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-bold"
+                    >
+                        Log Entry
+                    </button>
+                </div>
+
+                <!-- Chart -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Temperature Timeline</h2>
+                    <div style="position: relative; height: 350px;">
+                        <canvas id="feverChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Log History -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Recent Logs</h2>
+                    <div id="logHistory" class="space-y-2 max-h-64 overflow-y-auto">
+                        <!-- Logs rendered here -->
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // ==================== State Management ====================
+        let state = {
+            profiles: [],
+            medications: [],
+            logs: [],
+            activeProfileId: null
+        };
+
+        // Color palette for medications
+        const colorPalette = [
+            '#EF4444', '#F97316', '#EAB308', '#22C55E', '#06B6D4',
+            '#3B82F6', '#8B5CF6', '#EC4899', '#D946EF', '#6366F1',
+            '#F59E0B', '#10B981', '#14B8A6', '#0891B2', '#6D28D9'
+        ];
+
+        // ==================== Initialization ====================
+        function init() {
+            loadState();
+            setCurrentDateTime();
+            renderProfiles();
+            renderMedications();
+            updateMedicationSelect();
+            if (state.activeProfileId) {
+                updateChart();
+                renderLogs();
+            }
+        }
+
+        function setCurrentDateTime() {
+            const now = new Date();
+            document.getElementById('dateInput').valueAsDate = now;
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(Math.round(now.getMinutes() / 15) * 15 % 60).padStart(2, '0');
+            document.getElementById('timeInput').value = `${hours}:${minutes}`;
+        }
+
+        // ==================== Profile Management ====================
+        function addProfile() {
+            const input = document.getElementById('newProfileInput');
+            const name = input.value.trim();
+            if (!name) return;
+
+            const profile = {
+                id: Date.now(),
+                name: name
+            };
+
+            state.profiles.push(profile);
+            if (!state.activeProfileId) {
+                state.activeProfileId = profile.id;
+            }
+
+            input.value = '';
+            saveState();
+            renderProfiles();
+            updateChart();
+            renderLogs();
+        }
+
+        function deleteProfile(id) {
+            if (!confirm(`Delete profile "${state.profiles.find(p => p.id === id).name}"?`)) return;
+            state.profiles = state.profiles.filter(p => p.id !== id);
+            state.logs = state.logs.filter(log => log.profileId !== id);
+            
+            if (state.activeProfileId === id) {
+                state.activeProfileId = state.profiles.length > 0 ? state.profiles[0].id : null;
+            }
+
+            saveState();
+            renderProfiles();
+            if (state.activeProfileId) {
+                updateChart();
+                renderLogs();
+            }
+        }
+
+        function selectProfile(id) {
+            state.activeProfileId = id;
+            saveState();
+            renderProfiles();
+            updateChart();
+            renderLogs();
+        }
+
+        function renameProfile(id) {
+            const profile = state.profiles.find(p => p.id === id);
+            const newName = prompt(`Rename "${profile.name}" to:`, profile.name);
+            if (newName && newName.trim()) {
+                profile.name = newName.trim();
+                saveState();
+                renderProfiles();
+            }
+        }
+
+        function renderProfiles() {
+            const container = document.getElementById('profileList');
+            container.innerHTML = state.profiles.map(profile => `
+                <div class="p-3 rounded-lg transition-colors ${profile.id === state.activeProfileId ? 'bg-blue-100 border-2 border-blue-600' : 'bg-gray-100 border-2 border-gray-200'}">
+                    <div class="flex items-center justify-between mb-2">
+                        <button 
+                            onclick="selectProfile(${profile.id})"
+                            class="flex-1 text-left font-semibold text-gray-800 hover:text-blue-600 transition-colors"
+                        >
+                            👤 ${profile.name}
+                        </button>
+                    </div>
+                    <div class="flex gap-1 text-xs">
+                        <button 
+                            onclick="renameProfile(${profile.id})"
+                            class="flex-1 px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                        >
+                            ✎
+                        </button>
+                        <button 
+                            onclick="deleteProfile(${profile.id})"
+                            class="flex-1 px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            if (state.profiles.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">No profiles yet. Add one above.</p>';
+            }
+        }
+
+        // ==================== Medication Management ====================
+        function addMedication() {
+            const input = document.getElementById('newMedicationInput');
+            const name = input.value.trim();
+            if (!name) return;
+
+            const medication = {
+                id: Date.now(),
+                name: name,
+                color: colorPalette[state.medications.length % colorPalette.length]
+            };
+
+            state.medications.push(medication);
+            input.value = '';
+            saveState();
+            renderMedications();
+            updateMedicationSelect();
+        }
+
+        function deleteMedication(id) {
+            const medication = state.medications.find(m => m.id === id);
+            if (!confirm(`Delete medication "${medication.name}"?`)) return;
+            
+            state.medications = state.medications.filter(m => m.id !== id);
+            state.logs = state.logs.filter(log => log.medicationId !== id);
+            saveState();
+            renderMedications();
+            updateMedicationSelect();
+            updateChart();
+            renderLogs();
+        }
+
+        function renderMedications() {
+            const container = document.getElementById('medicationList');
+            container.innerHTML = state.medications.map(med => `
+                <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                    <div class="flex items-center gap-2 flex-1">
+                        <div 
+                            style="background-color: ${med.color}; width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0;"
+                        ></div>
+                        <span class="text-sm text-gray-700">${med.name}</span>
+                    </div>
+                    <button 
+                        onclick="deleteMedication(${med.id})"
+                        class="text-xs px-2 py-1 text-red-600 hover:bg-red-100 rounded transition-colors"
+                    >
+                        ✕
+                    </button>
+                </div>
+            `).join('');
+
+            if (state.medications.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-xs">No medications yet. Add one above.</p>';
+            }
+        }
+
+        function updateMedicationSelect() {
+            const select = document.getElementById('medicationSelect');
+            select.innerHTML = '<option value="">— None —</option>' + state.medications.map(med => `
+                <option value="${med.id}">${med.name}</option>
+            `).join('');
+        }
+
+        // ==================== Data Logging ====================
+        function logEntry() {
+            if (!state.activeProfileId) {
+                alert('Please create a profile first.');
+                return;
+            }
+
+            const temp = parseFloat(document.getElementById('tempInput').value);
+            const date = document.getElementById('dateInput').value;
+            const time = document.getElementById('timeInput').value;
+            const medicationId = document.getElementById('medicationSelect').value;
+
+            if (!temp || !date || !time) {
+                alert('Please fill in temperature, date, and time.');
+                return;
+            }
+
+            const entry = {
+                id: Date.now(),
+                profileId: state.activeProfileId,
+                temperature: temp,
+                timestamp: new Date(`${date}T${time}`).getTime(),
+                medicationId: medicationId ? parseInt(medicationId) : null
+            };
+
+            state.logs.push(entry);
+            state.logs.sort((a, b) => a.timestamp - b.timestamp);
+
+            saveState();
+            document.getElementById('tempInput').value = '';
+            updateChart();
+            renderLogs();
+            setCurrentDateTime();
+        }
+
+        function deleteLog(id) {
+            state.logs = state.logs.filter(log => log.id !== id);
+            saveState();
+            updateChart();
+            renderLogs();
+        }
+
+        // ==================== Chart Visualization ====================
+        let chartInstance = null;
+
+        function updateChart() {
+            const profileId = state.activeProfileId;
+            const profileLogs = state.logs.filter(log => log.profileId === profileId);
+
+            if (profileLogs.length === 0) {
+                const ctx = document.getElementById('feverChart').getContext('2d');
+                if (chartInstance) chartInstance.destroy();
+                ctx.fillStyle = '#D1D5DB';
+                ctx.font = '14px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('No temperature logs yet', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return;
+            }
+
+            // Prepare temperature line data
+            const temps = profileLogs.map(log => ({
+                x: log.timestamp,
+                y: log.temperature
+            }));
+
+            // Create datasets for medications (overlay dots)
+            const medicationDatasets = state.medications.map(med => {
+                const medLogs = profileLogs.filter(log => log.medicationId === med.id);
+                return {
+                    label: med.name,
+                    data: medLogs.map(log => ({
+                        x: log.timestamp,
+                        y: log.temperature
+                    })),
+                    type: 'scatter',
+                    backgroundColor: med.color,
+                    borderColor: med.color,
+                    borderWidth: 2,
+                    radius: 6,
+                    hoverRadius: 8,
+                    tension: 0
+                };
+            });
+
+            // Create main temperature line
+            const mainDataset = {
+                label: 'Temperature (°F)',
+                data: temps,
+                type: 'line',
+                borderColor: '#3B82F6',
+                borderWidth: 3,
+                backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                fill: false,
+                tension: 0.3,
+                pointRadius: 4,
+                pointBackgroundColor: '#3B82F6',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                hoverRadius: 6
+            };
+
+            const datasets = [mainDataset, ...medicationDatasets];
+
+            const ctx = document.getElementById('feverChart').getContext('2d');
+            if (chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(ctx, {
+                type: 'scatter',
+                data: { datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: { size: 12, weight: 'bold' },
+                                padding: 15,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const date = new Date(context.parsed.x);
+                                    const temp = context.parsed.y;
+                                    return `${temp}°F @ ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            min: Math.min(...temps.map(t => t.x)) - 3600000,
+                            max: Math.max(...temps.map(t => t.x)) + 3600000,
+                            title: {
+                                display: true,
+                                text: 'Timeline'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    const date = new Date(value);
+                                    return date.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                                },
+                                maxRotation: 45,
+                                minRotation: 0
+                            },
+                            grid: {
+                                drawBorder: true,
+                                drawOnChartArea: true,
+                                color: function(context) {
+                                    // 3-hour intervals
+                                    if (context.tick.value) {
+                                        const msPerInterval = 3 * 60 * 60 * 1000;
+                                        if (context.tick.value % msPerInterval === 0) {
+                                            return 'rgba(0, 0, 0, 0.1)';
+                                        }
+                                    }
+                                    return 'rgba(0, 0, 0, 0.02)';
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: false,
+                            min: 95,
+                            max: 106,
+                            title: {
+                                display: true,
+                                text: 'Temperature (°F)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toFixed(1);
+                                }
+                            },
+                            grid: {
+                                drawBorder: true,
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ==================== Log History ====================
+        function renderLogs() {
+            const profileId = state.activeProfileId;
+            const profileLogs = state.logs.filter(log => log.profileId === profileId);
+            const container = document.getElementById('logHistory');
+
+            container.innerHTML = [...profileLogs].reverse().map(log => {
+                const date = new Date(log.timestamp);
+                const med = state.medications.find(m => m.id === log.medicationId);
+                const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+                const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                return `
+                    <div class="p-3 bg-gray-50 rounded-lg flex justify-between items-center">
+                        <div class="flex-1">
+                            <div class="font-semibold text-gray-800">${log.temperature}°F</div>
+                            <div class="text-sm text-gray-600">${dateStr} @ ${timeStr}</div>
+                            ${med ? `<div class="text-xs text-gray-500">💊 ${med.name}</div>` : ''}
+                        </div>
+                        <button 
+                            onclick="deleteLog(${log.id})"
+                            class="px-3 py-1 text-red-600 hover:bg-red-100 rounded transition-colors text-sm"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            if (profileLogs.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">No logs yet. Add one above.</p>';
+            }
+        }
+
+        // ==================== Utilities ====================
+        function clearAllData() {
+            if (!confirm('Are you sure you want to delete ALL profiles, medications, and logs? This cannot be undone.')) {
+                return;
+            }
+
+            state = {
+                profiles: [],
+                medications: [],
+                logs: [],
+                activeProfileId: null
+            };
+
+            saveState();
+            renderProfiles();
+            renderMedications();
+            updateMedicationSelect();
+            updateChart();
+            renderLogs();
+
+            alert('All data cleared.');
+        }
+
+        // ==================== LocalStorage ====================
+        function saveState() {
+            localStorage.setItem('feverTrackerState', JSON.stringify(state));
+        }
+
+        function loadState() {
+            const saved = localStorage.getItem('feverTrackerState');
+            if (saved) {
+                try {
+                    state = JSON.parse(saved);
+                } catch (e) {
+                    console.error('Failed to load state:', e);
+                }
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
