@@ -1078,17 +1078,22 @@
                                 callback: function(value) {
                                     const date = new Date(value);
 
-                                    const dateLabel = date.toLocaleDateString([], {
-                                        month: 'short',
-                                        day: 'numeric'
-                                    });
-
                                     const timeLabel = date.toLocaleTimeString([], {
                                         hour: 'numeric',
                                         minute: '2-digit'
                                     });
+                                   
+                                    if (isLocalMidnight(value)) {
+                                            const dateLabel = date.toLocaleDateString([], {
+                                                month: 'short',
+                                                day: 'numeric'
+                                            });
+                                
+                                            return [dateLabel, timeLabel];
+                                        }
+                                
+                                      return ['', timeLabel];
 
-                                    return [dateLabel, timeLabel];
                                 },
 
                                 color: function(context) {
