@@ -1077,22 +1077,27 @@
 
                                 callback: function(value) {
                                     const date = new Date(value);
+                                    const hour = date.getHours();
+                                    const minute = date.getMinutes();
 
-                                    const timeLabel = date.toLocaleTimeString([], {
-                                        hour: 'numeric',
-                                        minute: '2-digit'
-                                    });
-                                   
-                                    if (isLocalMidnight(value)) {
-                                            const dateLabel = date.toLocaleDateString([], {
-                                                month: 'short',
-                                                day: 'numeric'
-                                            });
-                                
-                                            return [dateLabel, timeLabel];
-                                        }
-                                
-                                      return ['', timeLabel];
+                                    // At midnight, show only the date.
+                                    // Do not show 12 AM underneath.
+                                    if (hour === 0 && minute === 0) {
+                                        return date.toLocaleDateString([], {
+                                            month: 'short',
+                                            day: 'numeric'
+                                        });
+                                    }
+                            
+                                    // Show shortened time every 3 hours, without ":00".
+                                    let displayHour = hour % 12;
+                                    if (displayHour === 0) {
+                                        displayHour = 12;
+                                    }
+                            
+                                    const amPm = hour < 12 ? 'AM' : 'PM';
+                            
+                                    return `${displayHour} ${amPm}`;
 
                                 },
 
@@ -1106,7 +1111,7 @@
                                     const midnight = isLocalMidnight(value);
 
                                     return {
-                                        size: midnight ? 12 : 11,
+                                        size: midnight ? 12 : 10,
                                         weight: midnight ? 'bold' : 'normal'
                                     };
                                 }
