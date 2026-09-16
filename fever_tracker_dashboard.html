@@ -76,13 +76,37 @@
                 </div>
 
                 <hr class="mb-6">
-
+                <div class="space-y-2 mb-4">
+                    <button
+                        onclick="exportDataAsJson()"
+                        class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-sm"
+                    >
+                        ⬇️ Export JSON
+                    </button>
+                
+                    <label
+                        for="importJsonInput"
+                        class="block w-full px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold text-sm text-center cursor-pointer"
+                    >
+                        ⬆️ Import JSON
+                    </label>
+                
+                    <input
+                        id="importJsonInput"
+                        type="file"
+                        accept="application/json,.json"
+                        onchange="importDataFromJson(event)"
+                        class="hidden"
+                    >
+                </div>
+                
                 <button
                     onclick="clearAllData()"
                     class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm"
                 >
-                    🗑️ Clear All Data
+                    🗑️ Clear All Data / Start New Illness
                 </button>
+            
             </aside>
 
             <section class="lg:col-span-3 space-y-6">
@@ -1199,7 +1223,7 @@
         }
 
         function clearAllData() {
-            if (!confirm('Are you sure you want to delete ALL profiles, medications, and logs? This cannot be undone.')) {
+            if (!confirm('Start a new illness tracker? This will delete all current profiles, medications, and logs from this device. Export JSON first if you want to keep a copy')) {
                 return;
             }
 
@@ -1213,7 +1237,7 @@
             saveState();
             renderAll();
 
-            alert('All data cleared.');
+            alert('Tracker cleared. You can start a new illness now.');
         }
 
         function escapeHtml(value) {
